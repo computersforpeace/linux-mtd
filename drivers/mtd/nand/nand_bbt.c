@@ -125,23 +125,6 @@ static int check_pattern(uint8_t *buf, int len, int paglen, struct nand_bbt_desc
 }
 
 /**
- * check_short_pattern - [GENERIC] check if a pattern is in the buffer
- * @buf: the buffer to search
- * @td:	search pattern descriptor
- *
- * Check for a pattern at the given place. Used to search bad block tables and
- * good / bad block identifiers. Same as check_pattern, but no optional empty
- * check.
- */
-static int check_short_pattern(uint8_t *buf, struct nand_bbt_descr *td)
-{
-	/* Compare the pattern */
-	if (memcmp(buf + td->offs, td->pattern, td->len))
-		return -1;
-	return 0;
-}
-
-/**
  * add_marker_len - compute the length of the marker in data area
  * @td: BBT descriptor used for computation
  *
@@ -407,56 +390,6 @@ static void read_abs_bbts(struct mtd_info *mtd, uint8_t *buf,
 	}
 }
 
-/* Scan a given block full */
-static int scan_block_full(struct mtd_info *mtd, struct nand_bbt_descr *bd,
-			   loff_t offs, uint8_t *buf, size_t readlen,
-			   int scanlen, int numpages)
-{
-	int ret, j;
-
-	ret = scan_read_oob(mtd, buf, offs, readlen);
-	/* Ignore ECC errors when checking for BBM */
-	if (ret && !mtd_is_bitflip_or_eccerr(ret))
-		return ret;
-
-	for (j = 0; j < numpages; j++, buf += scanlen) {
-		if (check_pattern(buf, scanlen, mtd->writesize, bd))
-			return 1;
-	}
-	return 0;
-}
-
-/* Scan a given block partially */
-static int scan_block_fast(struct mtd_info *mtd, struct nand_bbt_descr *bd,
-			   loff_t offs, uint8_t *buf, int numpages)
-{
-	struct mtd_oob_ops ops;
-	int j, ret;
-
-	ops.ooblen = mtd->oobsize;
-	ops.oobbuf = buf;
-	ops.ooboffs = 0;
-	ops.datbuf = NULL;
-	ops.mode = MTD_OPS_PLACE_OOB;
-
-	for (j = 0; j < numpages; j++) {
-		/*
-		 * Read the full oob until read_oob is fixed to handle single
-		 * byte reads for 16 bit buswidth.
-		 */
-		ret = mtd_read_oob(mtd, offs, &ops);
-		/* Ignore ECC errors when checking for BBM */
-		if (ret && !mtd_is_bitflip_or_eccerr(ret))
-			return ret;
-
-		if (check_short_pattern(buf, bd))
-			return 1;
-
-		offs += mtd->writesize;
-	}
-	return 0;
-}
-
 /**
  * create_bbt - [GENERIC] Create a bad block table by scanning the device
  * @mtd: MTD device structure
@@ -472,23 +405,11 @@ static int create_bbt(struct mtd_info *mtd, uint8_t *buf,
 	struct nand_bbt_descr *bd, int chip)
 {
 	struct nand_chip *this = mtd->priv;
-	int i, numblocks, numpages, scanlen;
+	int i, numblocks;
 	int startblock;
 	loff_t from;
-	size_t readlen;
 
 	pr_info("Scanning device for bad blocks\n");
-
-	if (bd->options & NAND_BBT_SCANALLPAGES)
-		numpages = 1 << (this->bbt_erase_shift - this->page_shift);
-	else if (bd->options & NAND_BBT_SCAN2NDPAGE)
-		numpages = 2;
-	else
-		numpages = 1;
-
-	/* We need only read few bytes from the OOB area */
-	scanlen = 0;
-	readlen = bd->len;
 
 	if (chip == -1) {
 		numblocks = mtd->size >> this->bbt_erase_shift;
@@ -506,20 +427,12 @@ static int create_bbt(struct mtd_info *mtd, uint8_t *buf,
 		from = (loff_t)startblock << this->bbt_erase_shift;
 	}
 
-	if (this->bbt_options & NAND_BBT_SCANLASTPAGE)
-		from += mtd->erasesize - (mtd->writesize * numpages);
-
 	for (i = startblock; i < numblocks; i++) {
 		int ret;
 
 		BUG_ON(bd->options & NAND_BBT_NO_OOB);
 
-		if (bd->options & NAND_BBT_SCANALLPAGES)
-			ret = scan_block_full(mtd, bd, from, buf, readlen,
-					      scanlen, numpages);
-		else
-			ret = scan_block_fast(mtd, bd, from, buf, numpages);
-
+		ret = this->block_bad(mtd, from, 1);
 		if (ret < 0)
 			return ret;
 
