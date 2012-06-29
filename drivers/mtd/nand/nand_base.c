@@ -276,6 +276,7 @@ static int nand_block_bad(struct mtd_info *mtd, loff_t ofs, int getchip)
 	int page, chipnr, res = 0, i = 0;
 	struct nand_chip *chip = mtd->priv;
 	u16 bad;
+	int maxpages;
 
 	if (chip->bbt_options & NAND_BBT_SCANLASTPAGE)
 		ofs += mtd->erasesize - mtd->writesize;
@@ -290,6 +291,13 @@ static int nand_block_bad(struct mtd_info *mtd, loff_t ofs, int getchip)
 		/* Select the NAND device */
 		chip->select_chip(mtd, chipnr);
 	}
+
+	if (chip->bbt_options & NAND_BBT_SCAN2NDPAGE)
+		maxpages = 2;
+	else if (chip->bbt_options & NAND_BBT_SCANALLPAGES)
+		maxpages = 1 << (chip->bbt_erase_shift - chip->page_shift);
+	else
+		maxpages = 1;
 
 	do {
 		if (chip->options & NAND_BUSWIDTH_16) {
@@ -313,7 +321,7 @@ static int nand_block_bad(struct mtd_info *mtd, loff_t ofs, int getchip)
 		ofs += mtd->writesize;
 		page = (int)(ofs >> chip->page_shift) & chip->pagemask;
 		i++;
-	} while (!res && i < 2 && (chip->bbt_options & NAND_BBT_SCAN2NDPAGE));
+	} while (!res && i < maxpages);
 
 	if (getchip) {
 		chip->select_chip(mtd, -1);
