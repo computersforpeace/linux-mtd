@@ -92,6 +92,9 @@ static struct nand_ecclayout nand_oob_128 = {
 
 static int nand_get_device(struct mtd_info *mtd, int new_state);
 
+static int nand_do_read_oob(struct mtd_info *mtd, loff_t from,
+			    struct mtd_oob_ops *ops);
+
 static int nand_do_write_oob(struct mtd_info *mtd, loff_t to,
 			     struct mtd_oob_ops *ops);
 
@@ -275,7 +278,8 @@ static int nand_block_bad(struct mtd_info *mtd, loff_t ofs, int getchip)
 {
 	int page, chipnr, res = 0, i = 0;
 	struct nand_chip *chip = mtd->priv;
-	u16 bad;
+	struct mtd_oob_ops ops;
+	u8 bad;
 	int maxpages;
 
 	if (chip->bbt_options & NAND_BBT_SCANLASTPAGE)
@@ -299,20 +303,16 @@ static int nand_block_bad(struct mtd_info *mtd, loff_t ofs, int getchip)
 	else
 		maxpages = 1;
 
+	ops.datbuf = NULL;
+	ops.oobbuf = &bad;
+	ops.ooboffs = chip->badblockpos;
+	ops.len = ops.ooblen = 1;
+	ops.mode = MTD_OPS_RAW;
+
 	do {
-		if (chip->options & NAND_BUSWIDTH_16) {
-			chip->cmdfunc(mtd, NAND_CMD_READOOB,
-					chip->badblockpos & 0xFE, page);
-			bad = cpu_to_le16(chip->read_word(mtd));
-			if (chip->badblockpos & 0x1)
-				bad >>= 8;
-			else
-				bad &= 0xFF;
-		} else {
-			chip->cmdfunc(mtd, NAND_CMD_READOOB, chip->badblockpos,
-					page);
-			bad = chip->read_byte(mtd);
-		}
+		res = nand_do_read_oob(mtd, ofs, &ops);
+		if (!res)
+			return res;
 
 		if (likely(chip->badblockbits == 8))
 			res = bad != 0xFF;
