@@ -971,6 +971,7 @@ static int flctl_chip_init_tail(struct mtd_info *mtd)
 	}
 
 	if (flctl->hwecc) {
+		chip->bbt_options |= NAND_BBT_SCAN2NDPAGE;
 		if (mtd->writesize == 512) {
 			chip->ecc.layout = &flctl_4secc_oob_16;
 			chip->badblockpos = 11;

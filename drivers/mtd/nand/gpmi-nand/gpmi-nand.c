@@ -1544,6 +1544,8 @@ static int gpmi_nfc_init(struct gpmi_nand_data *this)
 		goto err_out;
 	}
 
+	chip->badblockpos = 0;
+
 	ppdata.of_node = this->pdev->dev.of_node;
 	ret = mtd_device_parse_register(mtd, NULL, &ppdata, NULL, 0);
 	if (ret)

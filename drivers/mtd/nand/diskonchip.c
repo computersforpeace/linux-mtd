@@ -1295,9 +1295,7 @@ static int __init nftl_scan_bbt(struct mtd_info *mtd)
 		this->bbt_md = NULL;
 	}
 
-	/* It's safe to set bd=NULL below because NAND_BBT_CREATE is not set.
-	   At least as nand_bbt.c is currently written. */
-	if ((ret = nand_scan_bbt(mtd, NULL)))
+	if ((ret = nand_scan_bbt(mtd)))
 		return ret;
 	mtd_device_register(mtd, NULL, 0);
 	if (!no_autopart)
@@ -1345,9 +1343,7 @@ static int __init inftl_scan_bbt(struct mtd_info *mtd)
 		this->bbt_md->pattern = "TBB_SYSM";
 	}
 
-	/* It's safe to set bd=NULL below because NAND_BBT_CREATE is not set.
-	   At least as nand_bbt.c is currently written. */
-	if ((ret = nand_scan_bbt(mtd, NULL)))
+	if ((ret = nand_scan_bbt(mtd)))
 		return ret;
 	memset((char *)parts, 0, sizeof(parts));
 	numparts = inftl_partscan(mtd, parts);

@@ -1106,7 +1106,7 @@ static int docg4_block_markbad(struct mtd_info *mtd, loff_t ofs)
 	if (buf == NULL)
 		return -ENOMEM;
 
-	/* write bit-wise negation of pattern to oob buffer */
+	/* write 00 to oob buffer */
 	memset(nand->oob_poi, 0xff, mtd->oobsize);
 	nand->oob_poi[nand->badblockpos] = 0;
 	if (nand->options & NAND_BUSWIDTH_16)
