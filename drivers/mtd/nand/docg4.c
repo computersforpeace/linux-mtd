@@ -1088,11 +1088,10 @@ static int docg4_block_markbad(struct mtd_info *mtd, loff_t ofs)
 	 * the nand default because writes to oob-only are not supported.
 	 */
 
-	int ret, i;
+	int ret;
 	uint8_t *buf;
 	struct nand_chip *nand = mtd->priv;
 	struct docg4_priv *doc = nand->priv;
-	struct nand_bbt_descr *bbtd = nand->badblock_pattern;
 	int block = (int)(ofs >> nand->bbt_erase_shift);
 	int page = (int)(ofs >> nand->page_shift);
 	uint32_t g4_addr = mtd_to_docg4_address(page, 0);
@@ -1113,8 +1112,9 @@ static int docg4_block_markbad(struct mtd_info *mtd, loff_t ofs)
 
 	/* write bit-wise negation of pattern to oob buffer */
 	memset(nand->oob_poi, 0xff, mtd->oobsize);
-	for (i = 0; i < bbtd->len; i++)
-		nand->oob_poi[bbtd->offs + i] = ~bbtd->pattern[i];
+	nand->oob_poi[nand->badblockpos] = 0;
+	if (nand->options & NAND_BUSWIDTH_16)
+		nand->oob_poi[nand->badblockpos + 1] = 0;
 
 	/* write first page of block */
 	write_page_prologue(mtd, g4_addr);
