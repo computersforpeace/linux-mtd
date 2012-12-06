@@ -65,22 +65,6 @@ static struct nand_ecclayout flctl_4secc_oob_64 = {
 		{.offset = 48, .length = 6} },
 };
 
-static uint8_t scan_ff_pattern[] = { 0xff, 0xff };
-
-static struct nand_bbt_descr flctl_4secc_smallpage = {
-	.options = NAND_BBT_SCAN2NDPAGE,
-	.offs = 11,
-	.len = 1,
-	.pattern = scan_ff_pattern,
-};
-
-static struct nand_bbt_descr flctl_4secc_largepage = {
-	.options = NAND_BBT_SCAN2NDPAGE,
-	.offs = 0,
-	.len = 2,
-	.pattern = scan_ff_pattern,
-};
-
 static void empty_fifo(struct sh_flctl *flctl)
 {
 	writel(flctl->flintdmacr_base | AC1CLR | AC0CLR, FLINTDMACR(flctl));
@@ -989,11 +973,12 @@ static int flctl_chip_init_tail(struct mtd_info *mtd)
 	if (flctl->hwecc) {
 		if (mtd->writesize == 512) {
 			chip->ecc.layout = &flctl_4secc_oob_16;
-			chip->badblock_pattern = &flctl_4secc_smallpage;
+			chip->badblockpos = 11;
 		} else {
 			chip->ecc.layout = &flctl_4secc_oob_64;
-			chip->badblock_pattern = &flctl_4secc_largepage;
+			chip->badblockpos = 0;
 		}
+		chip->options |= NAND_BBT_SCAN2NDPAGE;
 
 		chip->ecc.size = 512;
 		chip->ecc.bytes = 10;
