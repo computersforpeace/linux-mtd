@@ -37,15 +37,6 @@
 #define GPMI_NAND_BCH_REGS_ADDR_RES_NAME   "bch"
 #define GPMI_NAND_BCH_INTERRUPT_RES_NAME   "bch"
 
-/* add our owner bbt descriptor */
-static uint8_t scan_ff_pattern[] = { 0xff };
-static struct nand_bbt_descr gpmi_bbt_descr = {
-	.options	= 0,
-	.offs		= 0,
-	.len		= 1,
-	.pattern	= scan_ff_pattern
-};
-
 /*  We will use all the (page + OOB). */
 static struct nand_ecclayout gpmi_hw_ecclayout = {
 	.eccbytes = 0,
@@ -1539,7 +1530,6 @@ static int gpmi_nfc_init(struct gpmi_nand_data *this)
 	chip->ecc.read_oob	= gpmi_ecc_read_oob;
 	chip->ecc.write_oob	= gpmi_ecc_write_oob;
 	chip->scan_bbt		= gpmi_scan_bbt;
-	chip->badblock_pattern	= &gpmi_bbt_descr;
 	chip->block_markbad	= gpmi_block_markbad;
 	chip->options		|= NAND_NO_SUBPAGE_WRITE;
 	chip->ecc.mode		= NAND_ECC_HW;
@@ -1556,7 +1546,11 @@ static int gpmi_nfc_init(struct gpmi_nand_data *this)
 	if (ret)
 		goto err_out;
 
-	ret = nand_scan(mtd, 1);
+	ret = nand_scan_ident(mtd, 1, NULL);
+	chip->bbt_options &= ~(NAND_BBT_SCAN2NDPAGE | NAND_BBT_SCANLASTPAGE);
+	chip->badblockpos = 0;
+	if (!ret)
+		ret = nand_scan_tail(mtd);
 	if (ret) {
 		pr_err("Chip scan failed\n");
 		goto err_out;
