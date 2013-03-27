@@ -1398,13 +1398,14 @@ static int mxcnd_probe(struct platform_device *pdev)
 	struct resource *res;
 	int err = 0;
 
-	/* Allocate memory for MTD device structure and private data */
-	host = devm_kzalloc(&pdev->dev, sizeof(struct mxc_nand_host) +
-			NAND_MAX_PAGESIZE + NAND_MAX_OOBSIZE, GFP_KERNEL);
+	/* Allocate memory for MTD device structure */
+	host = devm_kzalloc(&pdev->dev, sizeof(*host), GFP_KERNEL);
 	if (!host)
 		return -ENOMEM;
-
-	host->data_buf = (uint8_t *)(host + 1);
+	/* Small databuf for READID, etc., before we get the page/OOB size */
+	host->data_buf = devm_kzalloc(&pdev->dev, 64, GFP_KERNEL);
+	if (!host->data->buf)
+		return -ENOMEM;
 
 	host->dev = &pdev->dev;
 	/* structures must be linked */
@@ -1533,6 +1534,11 @@ static int mxcnd_probe(struct platform_device *pdev)
 		err = -ENXIO;
 		goto escan;
 	}
+
+	/* Re-allocate with the correct size */
+	devm_kfree(&pdev->dev, host->data_buf);
+	host->data_buf = devm_kzalloc(&pdev->dev, mtd->writesize +
+				      mtd->oobsize, GFP_KERNEL);
 
 	/* Call preset again, with correct writesize this time */
 	host->devtype_data->preset(mtd);
