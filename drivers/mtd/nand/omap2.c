@@ -1588,7 +1588,7 @@ static int omap_write_page_bch(struct mtd_info *mtd, struct nand_chip *chip,
 				  const uint8_t *buf, int oob_required)
 {
 	int i;
-	uint8_t *ecc_calc = chip->buffers->ecccalc;
+	uint8_t *ecc_calc = chip->ecccalc_buf;
 	uint32_t *eccpos = chip->ecc.layout->eccpos;
 
 	/* Enable GPMC ecc engine */
@@ -1626,8 +1626,8 @@ static int omap_write_page_bch(struct mtd_info *mtd, struct nand_chip *chip,
 static int omap_read_page_bch(struct mtd_info *mtd, struct nand_chip *chip,
 				uint8_t *buf, int oob_required, int page)
 {
-	uint8_t *ecc_calc = chip->buffers->ecccalc;
-	uint8_t *ecc_code = chip->buffers->ecccode;
+	uint8_t *ecc_calc = chip->ecccalc_buf;
+	uint8_t *ecc_code = chip->ecccode_buf;
 	uint32_t *eccpos = chip->ecc.layout->eccpos;
 	uint8_t *oob = &chip->oob_poi[eccpos[0]];
 	uint32_t oob_pos = mtd->writesize + chip->ecc.layout->eccpos[0];

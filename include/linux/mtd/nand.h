@@ -363,21 +363,6 @@ struct nand_ecc_ctrl {
 };
 
 /**
- * struct nand_buffers - buffer structure for read/write
- * @ecccalc:	buffer for calculated ECC
- * @ecccode:	buffer for ECC read from flash
- * @databuf:	buffer for data - dynamically sized
- *
- * Do not change the order of buffers. databuf and oobrbuf must be in
- * consecutive order.
- */
-struct nand_buffers {
-	uint8_t	ecccalc[NAND_MAX_OOBSIZE];
-	uint8_t	ecccode[NAND_MAX_OOBSIZE];
-	uint8_t databuf[NAND_MAX_PAGESIZE + NAND_MAX_OOBSIZE];
-};
-
-/**
  * struct nand_chip - NAND Private Flash Chip Data
  * @IO_ADDR_R:		[BOARDSPECIFIC] address to read the 8 I/O lines of the
  *			flash device
@@ -405,7 +390,6 @@ struct nand_buffers {
  * @waitfunc:		[REPLACEABLE] hardwarespecific function for wait on
  *			ready.
  * @ecc:		[BOARDSPECIFIC] ECC control structure
- * @buffers:		buffer structure for read/write
  * @hwcontrol:		platform-specific hardware control structure
  * @erase_cmd:		[INTERN] erase command write function, selectable due
  *			to AND support.
@@ -413,6 +397,9 @@ struct nand_buffers {
  * @chip_delay:		[BOARDSPECIFIC] chip dependent delay for transferring
  *			data from array to read regs (tR).
  * @state:		[INTERN] the current state of the NAND device
+ * @ecccalc:		buffer for calculated ECC
+ * @ecccode:		buffer for ECC read from flash
+ * @databuf:		buffer for data + OOB
  * @oob_poi:		"poison value buffer," used for laying out OOB data
  *			before writing
  * @page_shift:		[INTERN] number of address bits in a page (column
@@ -516,12 +503,15 @@ struct nand_chip {
 
 	flstate_t state;
 
+	uint8_t	*ecccalc_buf;
+	uint8_t	*ecccode_buf;
+	uint8_t *databuf;
 	uint8_t *oob_poi;
+
 	struct nand_hw_control *controller;
 	struct nand_ecclayout *ecclayout;
 
 	struct nand_ecc_ctrl ecc;
-	struct nand_buffers *buffers;
 	struct nand_hw_control hwcontrol;
 
 	uint8_t *bbt;

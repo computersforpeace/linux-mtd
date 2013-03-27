@@ -866,7 +866,7 @@ static inline int nand_memory_bbt(struct mtd_info *mtd, struct nand_bbt_descr *b
 	struct nand_chip *this = mtd->priv;
 
 	bd->options &= ~NAND_BBT_SCANEMPTY;
-	return create_bbt(mtd, this->buffers->databuf, bd, -1);
+	return create_bbt(mtd, this->databuf, bd, -1);
 }
 
 /**

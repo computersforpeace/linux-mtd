@@ -1068,8 +1068,8 @@ static int nand_read_page_swecc(struct mtd_info *mtd, struct nand_chip *chip,
 	int eccbytes = chip->ecc.bytes;
 	int eccsteps = chip->ecc.steps;
 	uint8_t *p = buf;
-	uint8_t *ecc_calc = chip->buffers->ecccalc;
-	uint8_t *ecc_code = chip->buffers->ecccode;
+	uint8_t *ecc_calc = chip->ecccalc_buf;
+	uint8_t *ecc_code = chip->ecccode_buf;
 	uint32_t *eccpos = chip->ecc.layout->eccpos;
 	unsigned int max_bitflips = 0;
 
@@ -1137,7 +1137,7 @@ static int nand_read_subpage(struct mtd_info *mtd, struct nand_chip *chip,
 
 	/* Calculate ECC */
 	for (i = 0; i < eccfrag_len ; i += chip->ecc.bytes, p += chip->ecc.size)
-		chip->ecc.calculate(mtd, p, &chip->buffers->ecccalc[i]);
+		chip->ecc.calculate(mtd, p, &chip->ecccalc_buf[i]);
 
 	/*
 	 * The performance is faster if we position offsets according to
@@ -1173,14 +1173,14 @@ static int nand_read_subpage(struct mtd_info *mtd, struct nand_chip *chip,
 	}
 
 	for (i = 0; i < eccfrag_len; i++)
-		chip->buffers->ecccode[i] = chip->oob_poi[eccpos[i + index]];
+		chip->ecccode_buf[i] = chip->oob_poi[eccpos[i + index]];
 
 	p = bufpoi + data_col_addr;
 	for (i = 0; i < eccfrag_len ; i += chip->ecc.bytes, p += chip->ecc.size) {
 		int stat;
 
 		stat = chip->ecc.correct(mtd, p,
-			&chip->buffers->ecccode[i], &chip->buffers->ecccalc[i]);
+			&chip->ecccode_buf[i], &chip->ecccalc_buf[i]);
 		if (stat < 0) {
 			mtd->ecc_stats.failed++;
 		} else {
@@ -1208,8 +1208,8 @@ static int nand_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip,
 	int eccbytes = chip->ecc.bytes;
 	int eccsteps = chip->ecc.steps;
 	uint8_t *p = buf;
-	uint8_t *ecc_calc = chip->buffers->ecccalc;
-	uint8_t *ecc_code = chip->buffers->ecccode;
+	uint8_t *ecc_calc = chip->ecccalc_buf;
+	uint8_t *ecc_code = chip->ecccode_buf;
 	uint32_t *eccpos = chip->ecc.layout->eccpos;
 	unsigned int max_bitflips = 0;
 
@@ -1261,9 +1261,9 @@ static int nand_read_page_hwecc_oob_first(struct mtd_info *mtd,
 	int eccbytes = chip->ecc.bytes;
 	int eccsteps = chip->ecc.steps;
 	uint8_t *p = buf;
-	uint8_t *ecc_code = chip->buffers->ecccode;
+	uint8_t *ecc_code = chip->ecccode_buf;
 	uint32_t *eccpos = chip->ecc.layout->eccpos;
-	uint8_t *ecc_calc = chip->buffers->ecccalc;
+	uint8_t *ecc_calc = chip->ecccalc_buf;
 	unsigned int max_bitflips = 0;
 
 	/* Read the OOB area first */
@@ -1442,7 +1442,7 @@ static int nand_do_read_ops(struct mtd_info *mtd, loff_t from,
 
 		/* Is the current page in the buffer? */
 		if (realpage != chip->pagebuf || oob) {
-			bufpoi = aligned ? buf : chip->buffers->databuf;
+			bufpoi = aligned ? buf : chip->databuf;
 
 			chip->cmdfunc(mtd, NAND_CMD_READ0, 0x00, page);
 
@@ -1481,7 +1481,7 @@ static int nand_do_read_ops(struct mtd_info *mtd, loff_t from,
 					/* Invalidate page cache */
 					chip->pagebuf = -1;
 				}
-				memcpy(buf, chip->buffers->databuf + col, bytes);
+				memcpy(buf, chip->databuf + col, bytes);
 			}
 
 			buf += bytes;
@@ -1504,7 +1504,7 @@ static int nand_do_read_ops(struct mtd_info *mtd, loff_t from,
 					nand_wait_ready(mtd);
 			}
 		} else {
-			memcpy(buf, chip->buffers->databuf + col, bytes);
+			memcpy(buf, chip->databuf + col, bytes);
 			buf += bytes;
 			max_bitflips = max_t(unsigned int, max_bitflips,
 					     chip->pagebuf_bitflips);
@@ -1922,7 +1922,7 @@ static int nand_write_page_swecc(struct mtd_info *mtd, struct nand_chip *chip,
 	int i, eccsize = chip->ecc.size;
 	int eccbytes = chip->ecc.bytes;
 	int eccsteps = chip->ecc.steps;
-	uint8_t *ecc_calc = chip->buffers->ecccalc;
+	uint8_t *ecc_calc = chip->ecccalc_buf;
 	const uint8_t *p = buf;
 	uint32_t *eccpos = chip->ecc.layout->eccpos;
 
@@ -1949,7 +1949,7 @@ static int nand_write_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip,
 	int i, eccsize = chip->ecc.size;
 	int eccbytes = chip->ecc.bytes;
 	int eccsteps = chip->ecc.steps;
-	uint8_t *ecc_calc = chip->buffers->ecccalc;
+	uint8_t *ecc_calc = chip->ecccalc_buf;
 	const uint8_t *p = buf;
 	uint32_t *eccpos = chip->ecc.layout->eccpos;
 
@@ -2271,9 +2271,9 @@ static int nand_do_write_ops(struct mtd_info *mtd, loff_t to,
 			cached = 0;
 			bytes = min_t(int, bytes - column, (int) writelen);
 			chip->pagebuf = -1;
-			memset(chip->buffers->databuf, 0xff, mtd->writesize);
-			memcpy(&chip->buffers->databuf[column], buf, bytes);
-			wbuf = chip->buffers->databuf;
+			memset(chip->databuf, 0xff, mtd->writesize);
+			memcpy(&chip->databuf[column], buf, bytes);
+			wbuf = chip->databuf;
 		}
 
 		if (unlikely(oob)) {
@@ -3406,14 +3406,21 @@ int nand_scan_tail(struct mtd_info *mtd)
 	BUG_ON((chip->bbt_options & NAND_BBT_NO_OOB_BBM) &&
 			!(chip->bbt_options & NAND_BBT_USE_FLASH));
 
-	if (!chip->buffers)
-		chip->buffers = devm_kzalloc(&mtd->dev, sizeof(*chip->buffers),
-					     GFP_KERNEL);
-	if (!chip->buffers)
+	/* Allocate buffers */
+	if (!chip->ecccalc_buf)
+		chip->ecccalc_buf = devm_kzalloc(&mtd->dev, mtd->oobsize,
+				GFP_KERNEL);
+	if (!chip->ecccode_buf)
+		chip->ecccode_buf = devm_kzalloc(&mtd->dev, mtd->oobsize,
+				GFP_KERNEL);
+	if (!chip->databuf)
+		chip->databuf = devm_kzalloc(&mtd->dev, mtd->writesize +
+				mtd->oobsize, GFP_KERNEL);
+	if (!chip->ecccode_buf || !chip->ecccalc_buf || !chip->databuf)
 		return -ENOMEM;
 
 	/* Set the internal oob buffer location, just after the page data */
-	chip->oob_poi = chip->buffers->databuf + mtd->writesize;
+	chip->oob_poi = chip->databuf + mtd->writesize;
 
 	/*
 	 * If no default placement scheme is given, select an appropriate one.

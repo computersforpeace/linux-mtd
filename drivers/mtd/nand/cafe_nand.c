@@ -656,11 +656,13 @@ static int cafe_nand_probe(struct pci_dev *pdev,
 		return -ENOMEM;
 	}
 	cafe->dmabuf = dmam_alloc_coherent(&cafe->pdev->dev,
-			2112 + sizeof(struct nand_buffers), &cafe->dmaaddr,
-			GFP_KERNEL);
+			2112 + mtd->writesize + 3 * mtd->oobsize,
+			&cafe->dmaaddr, GFP_KERNEL);
 	if (!cafe->dmabuf)
 		return -ENOMEM;
-	cafe->nand.buffers = (void *)cafe->dmabuf + 2112;
+	cafe->nand.ecccalc_buf = (void *)cafe->dmabuf + 2112;
+	cafe->nand.ecccode_buf = (void *)cafe->nand.ecccalc_buf + mtd->oobsize;
+	cafe->nand.databuf = (void *)cafe->nand.databuf + mtd->oobsize;
 
 	cafe->rs = init_rs_non_canonical(12, &cafe_mul, 0, 1, 8);
 	if (!cafe->rs)
