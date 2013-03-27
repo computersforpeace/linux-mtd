@@ -1435,14 +1435,11 @@ int denali_init(struct denali_nand_info *denali)
 		pr_err("Spectra: no usable DMA configuration\n");
 		return ret;
 	}
-	denali->buf.dma_buf = dma_map_single(denali->dev, denali->buf.buf,
-					     DENALI_BUF_SIZE,
-					     DMA_BIDIRECTIONAL);
+	denali->buf.buf = dmam_alloc_coherent(denali->dev, DENALI_BUF_SIZE,
+					      &denali->buf.dma_buf, GFP_KERNEL);
+	if (!denali->buf.buf)
+		return -ENOMEM;
 
-	if (dma_mapping_error(denali->dev, denali->buf.dma_buf)) {
-		dev_err(denali->dev, "Spectra: failed to map DMA buffer\n");
-		return -EIO;
-	}
 	denali->mtd.dev.parent = denali->dev;
 	denali_hw_init(denali);
 	denali_drv_init(denali);
@@ -1602,7 +1599,5 @@ EXPORT_SYMBOL(denali_init);
 void denali_remove(struct denali_nand_info *denali)
 {
 	denali_irq_cleanup(denali->irq, denali);
-	dma_unmap_single(denali->dev, denali->buf.dma_buf, DENALI_BUF_SIZE,
-			DMA_BIDIRECTIONAL);
 }
 EXPORT_SYMBOL(denali_remove);

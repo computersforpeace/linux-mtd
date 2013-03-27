@@ -460,7 +460,7 @@
 struct nand_buf {
 	int head;
 	int tail;
-	uint8_t buf[DENALI_BUF_SIZE];
+	uint8_t *buf;
 	dma_addr_t dma_buf;
 };
 
