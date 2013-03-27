@@ -677,7 +677,6 @@ static int cafe_nand_probe(struct pci_dev *pdev,
 
 	/* Enable the following for a flash based bad block table */
 	cafe->nand.bbt_options = NAND_BBT_USE_FLASH;
-	cafe->nand.options = NAND_OWN_BUFFERS;
 
 	if (skipbbt) {
 		cafe->nand.options |= NAND_SKIP_BBTSCAN;

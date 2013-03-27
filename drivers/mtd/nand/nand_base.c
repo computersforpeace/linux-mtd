@@ -3406,8 +3406,9 @@ int nand_scan_tail(struct mtd_info *mtd)
 	BUG_ON((chip->bbt_options & NAND_BBT_NO_OOB_BBM) &&
 			!(chip->bbt_options & NAND_BBT_USE_FLASH));
 
-	if (!(chip->options & NAND_OWN_BUFFERS))
-		chip->buffers = kmalloc(sizeof(*chip->buffers), GFP_KERNEL);
+	if (!chip->buffers)
+		chip->buffers = devm_kzalloc(&mtd->dev, sizeof(*chip->buffers),
+					     GFP_KERNEL);
 	if (!chip->buffers)
 		return -ENOMEM;
 
@@ -3740,8 +3741,6 @@ void nand_release(struct mtd_info *mtd)
 
 	/* Free bad block table memory */
 	kfree(chip->bbt);
-	if (!(chip->options & NAND_OWN_BUFFERS))
-		kfree(chip->buffers);
 
 	/* Free bad block descriptor memory */
 	if (chip->badblock_pattern && chip->badblock_pattern->options
