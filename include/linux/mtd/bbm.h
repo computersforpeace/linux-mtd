@@ -119,13 +119,6 @@ struct nand_bbt_descr {
  */
 #define NAND_BBT_NO_OOB_BBM	0x00080000
 
-/*
- * Flag set by nand_create_default_bbt_descr(), marking that the nand_bbt_descr
- * was allocated dynamicaly and must be freed in nand_release(). Has no meaning
- * in nand_chip.bbt_options.
- */
-#define NAND_BBT_DYNAMICSTRUCT	0x80000000
-
 /* The maximum number of blocks to scan for a bbt */
 #define NAND_BBT_SCAN_MAXBLOCKS	4
 
