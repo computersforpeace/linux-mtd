@@ -1472,15 +1472,6 @@ int denali_init(struct denali_nand_info *denali)
 		goto failed_req_irq;
 	}
 
-	/* MTD supported page sizes vary by kernel. We validate our
-	 * kernel supports the device here.
-	 */
-	if (denali->mtd.writesize > NAND_MAX_PAGESIZE + NAND_MAX_OOBSIZE) {
-		ret = -ENODEV;
-		pr_err("Spectra: device size not supported by this version of MTD.");
-		goto failed_req_irq;
-	}
-
 	/* support for multi nand
 	 * MTD known nothing about multi nand,
 	 * so we should tell it the real pagesize
