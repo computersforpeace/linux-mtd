@@ -1228,14 +1228,11 @@ static int __xipram do_write_oneword(struct map_info *map, struct flchip *chip, 
 	struct cfi_private *cfi = map->fldrv_priv;
 	unsigned long timeo;
 	/*
-	 * We use a 1ms generic timeout for writes (most devices have a max
-	 * write time of a few hundreds usec). However, we should use the
-	 * maximum timeout value given by the chip at probe time instead.
-	 * Unfortunately, struct flchip does have a field for maximum timeout,
-	 * only for typical which can be far too short depending of the
-	 * conditions.
+	 * We use a 10ms generic timeout for writes. Most devices have a max
+	 * write time of a few hundreds usec, but timeouts have been seen with
+	 * too few jiffies.
 	 */
-	unsigned long uWriteTimeout = msecs_to_jiffies(1);
+	unsigned long uWriteTimeout = msecs_to_jiffies(10);
 	int ret = 0;
 	map_word oldd;
 	int retry_cnt = 0;
@@ -1465,7 +1462,7 @@ static int __xipram do_write_buffer(struct map_info *map, struct flchip *chip,
 	struct cfi_private *cfi = map->fldrv_priv;
 	unsigned long timeo;
 	/* see comments in do_write_oneword() regarding uWriteTimeout */
-	unsigned long uWriteTimeout = msecs_to_jiffies(1);
+	unsigned long uWriteTimeout = msecs_to_jiffies(10);
 	int ret = -EIO;
 	unsigned long cmd_adr;
 	int z, words;
@@ -1716,7 +1713,7 @@ static int cfi_amdstd_panic_wait(struct map_info *map, struct flchip *chip,
 static int do_panic_write_oneword(struct map_info *map, struct flchip *chip,
 				  unsigned long adr, map_word datum)
 {
-	const unsigned long uWriteTimeout = msecs_to_jiffies(1);
+	const unsigned long uWriteTimeout = msecs_to_jiffies(10);
 	struct cfi_private *cfi = map->fldrv_priv;
 	int retry_cnt = 0;
 	map_word oldd;
