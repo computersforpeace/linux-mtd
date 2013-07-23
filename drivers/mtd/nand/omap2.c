@@ -154,17 +154,6 @@ static u_char bch4_vector[] = {0x00, 0x6b, 0x31, 0xdd, 0x41, 0xbc, 0x10};
 
 /* oob info generated runtime depending on ecc algorithm and layout selected */
 static struct nand_ecclayout omap_oobinfo;
-/* Define some generic bad / good block scan pattern which are used
- * while scanning a device for factory marked good / bad blocks
- */
-static uint8_t scan_ff_pattern[] = { 0xff };
-static struct nand_bbt_descr bb_descrip_flashbased = {
-	.options = NAND_BBT_SCANEMPTY | NAND_BBT_SCANALLPAGES,
-	.offs = 0,
-	.len = 1,
-	.pattern = scan_ff_pattern,
-};
-
 
 struct omap_nand_info {
 	struct nand_hw_control		controller;
@@ -2026,8 +2015,6 @@ custom_ecc_layout:
 	pr_info("%s: using custom ecc layout\n", DRIVER_NAME);
 	omap_oobinfo.oobfree->length = mtd->oobsize - BADBLOCK_MARKER_LENGTH
 						- omap_oobinfo.eccbytes;
-	if (!(info->nand.options & NAND_BUSWIDTH_16))
-		info->nand.badblock_pattern = &bb_descrip_flashbased;
 	for (i = 1; i < omap_oobinfo.eccbytes; i++)
 		omap_oobinfo.eccpos[i] = omap_oobinfo.eccpos[0] + i;
 
